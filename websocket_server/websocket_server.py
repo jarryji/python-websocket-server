@@ -8,6 +8,7 @@ from hashlib import sha1
 import logging
 from socket import error as SocketError
 import errno
+from threading import Thread
 
 if sys.version_info[0] < 3:
     from SocketServer import ThreadingMixIn, TCPServer, StreamRequestHandler
@@ -50,7 +51,12 @@ OPCODE_PONG         = 0xA
 
 # -------------------------------- API ---------------------------------
 
-class API():
+class API(Thread):
+    def __init__(self):
+        Thread.__init__(self)
+
+    def run(self):
+        self.run_forever()
 
     def run_forever(self):
         try:
@@ -61,7 +67,6 @@ class API():
             logger.info("Server terminated.")
         except Exception as e:
             logger.error(str(e), exc_info=True)
-            exit(1)
 
     def new_client(self, client, server):
         pass
@@ -119,6 +124,7 @@ class WebsocketServer(ThreadingMixIn, TCPServer, API):
     id_counter = 0
 
     def __init__(self, port, host='127.0.0.1', loglevel=logging.WARNING):
+        API.__init__(self)
         logger.setLevel(loglevel)
         TCPServer.__init__(self, (host, port), WebSocketHandler)
         self.port = self.socket.getsockname()[1]
