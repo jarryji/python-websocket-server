@@ -313,6 +313,11 @@ class WebSocketHandler(StreamRequestHandler):
     def handshake(self):
         headers = self.read_http_headers()
 
+        if 'upgrade' not in headers.keys():
+            self.request.send(self.make_upgrade_response().encode())
+            self.keep_alive = False
+            return
+
         try:
             assert headers['upgrade'].lower() == 'websocket'
         except AssertionError:
@@ -330,6 +335,17 @@ class WebSocketHandler(StreamRequestHandler):
         self.handshake_done = self.request.send(response.encode())
         self.valid_client = True
         self.server._new_client_(self)
+
+    @classmethod
+    def make_upgrade_response(cls):
+        return \
+            'HTTP/1.1 426 Upgrade Required\r\n'\
+            'Upgrade: HTTP/3.0\r\n'\
+            'Connection: Close\r\n'\
+            'Content-Encoding: text/plain\r\n'\
+            '\r\n'\
+            'This service requires use of the HTTP/3.0 protocol'
+
 
     @classmethod
     def make_handshake_response(cls, key):
